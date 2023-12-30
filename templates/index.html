@@ -1,0 +1,82 @@
+<!-- Updated HTML with instant image display -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages">
+            {% for msg in messages %}
+                <p><strong>{{ msg.username }}:</strong> {{ msg.message }}
+                    {% if msg.file_data %}
+                        {% if msg.file_type.startswith('image') %}
+                            <br><img src="{{ msg.file_data }}" alt="{{ msg.file_name }}" style="max-width: 100%">
+                        {% else %}
+                            <br><a href="{{ msg.file_data }}" target="_blank">{{ msg.file_name }}</a>
+                        {% endif %}
+                    {% endif %}
+                </p>
+            {% endfor %}
+        </div>
+        <div id="input-container">
+            <input type="text" id="username" placeholder="Enter your username">
+            <input type="text" id="message" placeholder="Type your message">
+            <input type="file" id="fileInput">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('update_messages', function(data) {
+            document.getElementById('messages').innerHTML = data.messages.map(
+                msg => `<p><strong>${msg.username}:</strong> ${msg.message}
+                        ${msg.file_data ?
+                            (msg.file_type.startsWith('image') ?
+                                `<br><img src="${msg.file_data}" alt="${msg.file_name}" style="max-width: 100%">` :
+                                `<br><a href="${msg.file_data}" target="_blank">${msg.file_name}</a>`) :
+                            ''}</p>`
+            ).join('');
+        });
+
+        function sendMessage() {
+            var username = document.getElementById('username').value;
+            var message = document.getElementById('message').value;
+
+            if (username === '' || message === '') {
+                alert('Please enter both username and message');
+                return;
+            }
+
+            var fileInput = document.getElementById('fileInput');
+            var formData = new FormData();
+            formData.append('username', username);
+            formData.append('message', message);
+
+            if (fileInput.files.length > 0) {
+                var file = fileInput.files[0];
+                formData.append('file', file);
+                formData.append('file_data', URL.createObjectURL(file));
+                formData.append('file_name', file.name);
+                formData.append('file_type', file.type);
+            }
+
+            // Send message data to the server
+            socket.emit('message', {
+                'username': username,
+                'message': message,
+                'file_data': formData.get('file_data'),
+                'file_name': formData.get('file_name'),
+                'file_type': formData.get('file_type')
+            });
+            document.getElementById('message').value = '';
+            document.getElementById('fileInput').value = '';
+        }
+    </script>
+</body>
+</html>
