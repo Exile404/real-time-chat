@@ -34,5 +34,5 @@ def handle_message(data):
     socketio.emit('update_messages', {'messages': messages})
 
 
-if __name__ == '__main__':
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+# if __name__ == '__main__':
+#     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
